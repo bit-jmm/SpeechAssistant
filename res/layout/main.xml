@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="fill_parent"
+    android:layout_height="fill_parent"
+    android:gravity="center_horizontal"
+    android:orientation="vertical"
+    android:padding="10dip">
+
+    <TextView
+	   	android:text="@string/title"
+	   	android:layout_width="fill_parent"
+	   	android:layout_height="wrap_content"
+	   	android:gravity="center"
+	   	android:textSize="30sp"
+	   	android:layout_margin="10dip"
+    />
+    <EditText
+        android:id="@+id/dialogue"
+        android:layout_width="fill_parent"
+        android:scrollbars="vertical"
+        android:layout_height="0dip"
+        android:layout_weight="1"
+        android:gravity="top|left"
+        android:textSize="20sp" />
+	<LinearLayout
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:layout_margin="10dip"
+        android:layout_marginBottom="2dip"
+        android:gravity="center_horizontal"
+        android:orientation="horizontal" >
+	    <Button
+	        android:id="@+id/tts"
+	        android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+	        android:text="语音合成" 
+	    	android:textSize="20sp" />
+	    <Button
+	        android:id="@+id/stt"
+	        android:layout_width="0dip"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+	        android:text="语音识别" 
+	        android:textSize="20sp" />
+	</LinearLayout>
+	<LinearLayout
+	        android:layout_width="fill_parent"
+	        android:layout_height="wrap_content"
+	        android:layout_margin="10dip"
+	        android:layout_marginBottom="2dip"
+	        android:gravity="center_horizontal"
+	        android:orientation="horizontal" >
+		    <Button
+		        android:id="@+id/start_dial"
+		        android:layout_width="0dp"
+	            android:layout_height="wrap_content"
+	            android:layout_weight="1"
+		        android:text="开始对话" 
+		    	android:textSize="20sp" />
+		    <Button
+		        android:id="@+id/speech_assistant"
+		        android:layout_width="0dip"
+	            android:layout_height="wrap_content"
+	            android:layout_weight="1"
+		        android:text="语音小助理" 
+		        android:textSize="20sp" />
+	</LinearLayout>
+	
+</LinearLayout>
