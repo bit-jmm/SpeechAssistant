@@ -14,14 +14,21 @@
 	   	android:textSize="30sp"
 	   	android:layout_margin="10dip"
     />
+
     <EditText
         android:id="@+id/dialogue"
         android:layout_width="fill_parent"
-        android:scrollbars="vertical"
         android:layout_height="0dip"
-        android:layout_weight="1"
+        android:layout_weight="0.55"
         android:gravity="top|left"
+        android:scrollbars="vertical"
         android:textSize="20sp" />
+
+    <WebView
+        android:id="@+id/web"
+        android:layout_width="match_parent"
+        android:layout_height="92dp" />
+
 	<LinearLayout
         android:layout_width="fill_parent"
         android:layout_height="wrap_content"

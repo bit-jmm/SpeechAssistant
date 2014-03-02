@@ -25,6 +25,8 @@ import android.text.method.ScrollingMovementMethod;
 import android.util.Log;
 import android.view.View;
 import android.view.View.OnClickListener;
+import android.webkit.WebView;
+import android.webkit.WebViewClient;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.Toast;
@@ -63,6 +65,8 @@ public class MainActivity extends Activity implements OnClickListener {
 
 	private String messageText = null;
 
+	private WebView webView = null;
+
 	private Handler dialHandler;
 
 	private boolean mRunning = false;
@@ -87,6 +91,19 @@ public class MainActivity extends Activity implements OnClickListener {
 
 		Button mBtnStartDial = (Button) findViewById(R.id.start_dial);
 		mBtnStartDial.setOnClickListener(this);
+
+		webView = (WebView) findViewById(R.id.web);
+		webView.getSettings().setJavaScriptEnabled(true);
+		webView.setWebViewClient(new WebViewClient() {
+
+			@Override
+			public boolean shouldOverrideUrlLoading(WebView view, String url) {
+				// TODO Auto-generated method stub
+				view.loadUrl(url);
+				return super.shouldOverrideUrlLoading(view, url);
+			}
+
+		});
 
 		ttsBtn = (Button) findViewById(R.id.tts);
 		ttsBtn.setOnClickListener(this);
@@ -142,7 +159,8 @@ public class MainActivity extends Activity implements OnClickListener {
 			case 2:
 				dialogue.setText(dialogue.getText().toString() + "\n"
 						+ messageText);
-				dialogue.setSelection(dialogue.getText().length(), dialogue.getText().length());
+				dialogue.setSelection(dialogue.getText().length(), dialogue
+						.getText().length());
 				break;
 			default:
 				break;
@@ -191,7 +209,7 @@ public class MainActivity extends Activity implements OnClickListener {
 
 				speak(string);
 
-//				waitSomeTime(string.length()*100);
+				// waitSomeTime(string.length()*100);
 
 				// 0表示轮到主人说话，1表示轮到机器人晓燕说话。
 				int whoseTurn = 0;
@@ -219,24 +237,26 @@ public class MainActivity extends Activity implements OnClickListener {
 							messageText = "晓燕：请问您是要问" + SttResult + "吗？";
 							sendUpdateMessage();
 							speak(temp);
-							waitSomeTime(temp.length()*500);
+							waitSomeTime(temp.length() * 500);
 							isQuestion = 1;
 							question = SttResult;
 
 						} else {
 							if (isPositive(SttResult)) {
 								if (isQNowTime(question)) {
-									temp = "主人，您好！现在是 " + getNowDate() + "回答完毕，请您再次提问。";
+									temp = "主人，您好！现在是 " + getNowDate()
+											+ "回答完毕，请您再次提问。";
 									messageText = "晓燕：" + temp;
 									sendUpdateMessage();
 									speak(temp);
-									waitSomeTime(temp.length()*300);
-								} else if(isChinaFamousUniversity(question)){
-									temp = "主人，您好！中国著名大学有清华大学和北京大学。 " + "回答完毕，请您再次提问。";
+									waitSomeTime(temp.length() * 300);
+								} else if (isChinaFamousUniversity(question)) {
+									temp = "主人，您好！中国著名大学有清华大学和北京大学。 "
+											+ "回答完毕，请您再次提问。";
 									messageText = "晓燕：" + temp;
 									sendUpdateMessage();
 									speak(temp);
-									waitSomeTime(temp.length()*300);
+									waitSomeTime(temp.length() * 300);
 								} else {
 									messageText = "晓燕：主人，对不起，我回答不了您的问题，请重新提问。";
 									sendUpdateMessage();
@@ -247,7 +267,7 @@ public class MainActivity extends Activity implements OnClickListener {
 								messageText = "晓燕：对不起，我没有听清楚您的问题，请主人重新提问。";
 								sendUpdateMessage();
 								speak("对不起，我没有听清楚您的问题，请主人重新提问。");
-								waitSomeTime(5000);	
+								waitSomeTime(5000);
 							}
 							isQuestion = 0;
 						}
@@ -292,7 +312,9 @@ public class MainActivity extends Activity implements OnClickListener {
 			mStt.startListening(mRecognizerListener);
 			break;
 		case R.id.start_dial:
-			startDial();
+			webView.loadUrl("http://baike.baidu.com/");
+
+			// startDial();
 			break;
 		default:
 			break;
@@ -304,7 +326,7 @@ public class MainActivity extends Activity implements OnClickListener {
 	protected void onResume() {
 		// TODO Auto-generated method stub
 		super.onResume();
-		mRunning = true; 
+		mRunning = true;
 	}
 
 	@Override
@@ -359,6 +381,7 @@ public class MainActivity extends Activity implements OnClickListener {
 		}
 		return false;
 	}
+
 	// 是否问中国著名大学
 	private boolean isChinaFamousUniversity(String question) {
 		// TODO Auto-generated method stub
@@ -369,6 +392,7 @@ public class MainActivity extends Activity implements OnClickListener {
 		}
 		return false;
 	}
+
 	// 确认问题
 	private boolean isPositive(String answer) {
 		if (answer.contains("不")) {
