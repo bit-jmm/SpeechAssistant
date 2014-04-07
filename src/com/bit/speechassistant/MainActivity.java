@@ -13,6 +13,7 @@ import android.app.Dialog;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageInfo;
+import android.graphics.Bitmap;
 import android.opengl.ETC1;
 import android.os.Bundle;
 import android.os.Handler;
@@ -20,11 +21,14 @@ import android.os.HandlerThread;
 import android.os.Looper;
 import android.os.Message;
 import android.os.RemoteException;
+import android.os.SystemClock;
 import android.speech.RecognizerIntent;
 import android.text.method.ScrollingMovementMethod;
 import android.util.Log;
+import android.view.MotionEvent;
 import android.view.View;
 import android.view.View.OnClickListener;
+import android.view.View.OnTouchListener;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.widget.Button;
@@ -45,6 +49,7 @@ import com.iflytek.speech.SpeechUtility;
 import com.iflytek.speech.SynthesizerListener;
 import com.iflytek.speech.UtilityConfig;
 
+@SuppressLint("JavascriptInterface")
 public class MainActivity extends Activity implements OnClickListener {
 	private static String TAG = "MainActivity";
 	private Handler mHandler;
@@ -70,6 +75,10 @@ public class MainActivity extends Activity implements OnClickListener {
 	private Handler dialHandler;
 
 	private boolean mRunning = false;
+	
+	private int x = 0;
+	private int y = 0;
+
 	/**
 	 * 发音人选择。
 	 */
@@ -94,6 +103,7 @@ public class MainActivity extends Activity implements OnClickListener {
 
 		webView = (WebView) findViewById(R.id.web);
 		webView.getSettings().setJavaScriptEnabled(true);
+		webView.addJavascriptInterface(new InJavaScriptLocalObj(), "local_obj");
 		webView.setWebViewClient(new WebViewClient() {
 
 			@Override
@@ -102,9 +112,81 @@ public class MainActivity extends Activity implements OnClickListener {
 				view.loadUrl(url);
 				return super.shouldOverrideUrlLoading(view, url);
 			}
+			
+			
+			
+			@Override
+			public void onPageStarted(WebView view, String url, Bitmap favicon) {
+				// TODO Auto-generated method stub
+				Log.d("WebView","onPageStarted");
+				super.onPageStarted(view, url, favicon);
+			}
+
+
+
+			public void onPageFinished(WebView view, String url) {
+				// TODO Auto-generated method stub
+				Log.d("WebView","onPageFinished ");
+//				view.loadUrl("javascript:window.local_obj.showSource('<head>'+" +
+//		                "document.getElementsByTagName('html')[0].innerHTML+'</head>');");		
+//				webView.loadUrl("javascript:document.getElementsByName('word')[0].value='北京理工大学'");
+				
+				if (url.equals("http://wapbaike.baidu.com/?adapt=1&")) {
+					view.loadUrl("javascript:document.getElementsByName('word')[0].value='北京理工大学'");
+//					try {
+//						Thread.currentThread().sleep(1000);
+//					} catch (InterruptedException e) {
+//						// TODO Auto-generated catch block
+//						e.printStackTrace();
+//					}
+//					Log.w("webView", "Load");
+////					touchScreen(view,111.83757f, 175.40332f);
+//					touchScreen(view,447.35028f, 192.3757f);
+					
+					Message message = new Message();
+					message.what = 3;
+					mHandler.sendMessage(message);
+				}
+				super.onPageFinished(view, url);
+//				view.performLongClick();
+//				Log.w("webView", "Finish");
+//				try {
+//					Thread.sleep(100);
+//				} catch (InterruptedException e) {
+//					// TODO Auto-generated catch block
+//					e.printStackTrace();
+//				}
+//				touchScreen(view.findFocus(), view.findFocus().getLeft()+5, view.findFocus().getTop()+5);
+			}
 
 		});
+		webView.setOnTouchListener(new OnTouchListener() {
+			@Override
+			public boolean onTouch(View v, MotionEvent event) {
 
+				// switch (event.getAction()) {
+				//
+				// case MotionEvent.ACTION_DOWN:
+				// editText1.setText(String.valueOf(event.getRawX()));
+				// editText2.setText(String.valueOf(event.getRawY()));
+				// break;
+				// case MotionEvent.ACTION_UP:
+				// if (!v.hasFocus()) {
+				// v.requestFocus();
+				//
+				// }
+				// break;
+				// }
+				int action = event.getAction();
+				float x = event.getX();
+				float y = event.getY();
+				event.getMetaState();
+				Log.v("ON_TOUCH",
+						"Action = " + action + " View:" + v.toString());
+				Log.v("ON_TOUCH", "X = " + x + "Y = " + y);
+				return false;
+			}
+		});
 		ttsBtn = (Button) findViewById(R.id.tts);
 		ttsBtn.setOnClickListener(this);
 
@@ -136,6 +218,32 @@ public class MainActivity extends Activity implements OnClickListener {
 		mHandler = new Myhandler(Looper.getMainLooper());
 
 	}
+	
+	final class InJavaScriptLocalObj {
+	    public void showSource(String html) {
+	        Log.d("HTML", html);
+	    }
+	}
+	
+	private void simulateDoubleTapEvent(View view, float x, float y,
+			int action) {
+		long downTime = SystemClock.uptimeMillis();
+		long eventTime = SystemClock.uptimeMillis() + 100;
+		// List of meta states found here:
+		// developer.android.com/reference/android/view/KeyEvent.html#getMetaState()
+		int metaState = 0;
+		MotionEvent me = MotionEvent.obtain(downTime, eventTime, action, x, y,
+				metaState);
+		view.dispatchTouchEvent(me);
+	}
+	
+	public void touchScreen(View view,float x,float y) {
+		simulateDoubleTapEvent(view, x, y, 0);
+		simulateDoubleTapEvent(view, x, y, 2);
+		simulateDoubleTapEvent(view, x, y, 2);
+		simulateDoubleTapEvent(view, x, y, 2);
+		simulateDoubleTapEvent(view, x, y, 1);
+	}
 
 	class Myhandler extends Handler {
 		@Override
@@ -162,6 +270,14 @@ public class MainActivity extends Activity implements OnClickListener {
 				dialogue.setSelection(dialogue.getText().length(), dialogue
 						.getText().length());
 				break;
+			case 3:
+				try {
+					Thread.currentThread().sleep(1000);
+				} catch (InterruptedException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+				touchScreen(webView,447.35028f, 192.3757f);
 			default:
 				break;
 			}
@@ -309,7 +425,10 @@ public class MainActivity extends Activity implements OnClickListener {
 
 			break;
 		case R.id.stt:
-			mStt.startListening(mRecognizerListener);
+//			mStt.startListening(mRecognizerListener);
+			webView.loadUrl("http://baike.baidu.com/");
+			
+			
 			break;
 		case R.id.start_dial:
 			webView.loadUrl("http://baike.baidu.com/");
