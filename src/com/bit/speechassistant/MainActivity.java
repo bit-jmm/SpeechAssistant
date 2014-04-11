@@ -9,8 +9,10 @@ import javax.security.auth.PrivateCredentialPermission;
 import android.R.bool;
 import android.annotation.SuppressLint;
 import android.app.Activity;
+import android.app.AlertDialog;
 import android.app.Dialog;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageInfo;
 import android.graphics.Bitmap;
@@ -25,6 +27,7 @@ import android.os.SystemClock;
 import android.speech.RecognizerIntent;
 import android.text.method.ScrollingMovementMethod;
 import android.util.Log;
+import android.view.KeyEvent;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.View.OnClickListener;
@@ -92,7 +95,10 @@ public class MainActivity extends Activity implements OnClickListener {
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.main);
-
+		init();
+	}
+	
+	private void init() {
 		dialogue = (EditText) findViewById(R.id.dialogue);
 		dialogue.setMovementMethod(ScrollingMovementMethod.getInstance());
 		Button mBtnSpeechAssistant = (Button) findViewById(R.id.speech_assistant);
@@ -113,17 +119,6 @@ public class MainActivity extends Activity implements OnClickListener {
 				return super.shouldOverrideUrlLoading(view, url);
 			}
 			
-			
-			
-			@Override
-			public void onPageStarted(WebView view, String url, Bitmap favicon) {
-				// TODO Auto-generated method stub
-				Log.d("WebView","onPageStarted");
-				super.onPageStarted(view, url, favicon);
-			}
-
-
-
 			public void onPageFinished(WebView view, String url) {
 				// TODO Auto-generated method stub
 				Log.d("WebView","onPageFinished ");
@@ -132,51 +127,24 @@ public class MainActivity extends Activity implements OnClickListener {
 //				webView.loadUrl("javascript:document.getElementsByName('word')[0].value='北京理工大学'");
 				
 				if (url.equals("http://wapbaike.baidu.com/?adapt=1&")) {
-					view.loadUrl("javascript:document.getElementsByName('word')[0].value='北京理工大学'");
-//					try {
-//						Thread.currentThread().sleep(1000);
-//					} catch (InterruptedException e) {
-//						// TODO Auto-generated catch block
-//						e.printStackTrace();
-//					}
-//					Log.w("webView", "Load");
-////					touchScreen(view,111.83757f, 175.40332f);
-//					touchScreen(view,447.35028f, 192.3757f);
-					
+					if (null == SttResult ) {
+						view.loadUrl("javascript:document.getElementsByName('word')[0].value='北京理工大学'");
+					} else {
+						view.loadUrl("javascript:document.getElementsByName('word')[0].value='"+SttResult+"'");
+					}
+				
 					Message message = new Message();
 					message.what = 3;
 					mHandler.sendMessage(message);
 				}
 				super.onPageFinished(view, url);
-//				view.performLongClick();
-//				Log.w("webView", "Finish");
-//				try {
-//					Thread.sleep(100);
-//				} catch (InterruptedException e) {
-//					// TODO Auto-generated catch block
-//					e.printStackTrace();
-//				}
-//				touchScreen(view.findFocus(), view.findFocus().getLeft()+5, view.findFocus().getTop()+5);
 			}
 
 		});
+		
 		webView.setOnTouchListener(new OnTouchListener() {
 			@Override
 			public boolean onTouch(View v, MotionEvent event) {
-
-				// switch (event.getAction()) {
-				//
-				// case MotionEvent.ACTION_DOWN:
-				// editText1.setText(String.valueOf(event.getRawX()));
-				// editText2.setText(String.valueOf(event.getRawY()));
-				// break;
-				// case MotionEvent.ACTION_UP:
-				// if (!v.hasFocus()) {
-				// v.requestFocus();
-				//
-				// }
-				// break;
-				// }
 				int action = event.getAction();
 				float x = event.getX();
 				float y = event.getY();
@@ -216,9 +184,7 @@ public class MainActivity extends Activity implements OnClickListener {
 				"tts_audio_path=/sdcard/tts.pcm");
 
 		mHandler = new Myhandler(Looper.getMainLooper());
-
 	}
-	
 	final class InJavaScriptLocalObj {
 	    public void showSource(String html) {
 	        Log.d("HTML", html);
@@ -278,6 +244,10 @@ public class MainActivity extends Activity implements OnClickListener {
 					e.printStackTrace();
 				}
 				touchScreen(webView,447.35028f, 192.3757f);
+				break;
+			case 4:
+				webView.loadUrl("http://baike.baidu.com/");
+				break;
 			default:
 				break;
 			}
@@ -302,17 +272,6 @@ public class MainActivity extends Activity implements OnClickListener {
 		@Override
 		public void run() {
 			// ----------模拟耗时的操作，开始---------------
-			// while (mRunning) {
-			// mRunning = false;
-			//
-			// SttResult = "你好";
-			// while (true) {
-			// speak(SttResult);
-			// waitSomeTime(3000);
-			// SpeechRecognize();
-			// waitSomeTime(2000);
-			// }
-			// }
 			while (mRunning) {
 				mRunning = false;
 
@@ -373,6 +332,27 @@ public class MainActivity extends Activity implements OnClickListener {
 									sendUpdateMessage();
 									speak(temp);
 									waitSomeTime(temp.length() * 300);
+								} else if(isBaikeQuestion(question)) {
+									temp = "请问您要问什么百科知识？";
+									messageText = "晓燕：" + temp;
+									sendUpdateMessage();
+									speak(temp);
+									waitSomeTime(temp.length() * 300);
+									
+									while (true) {
+										SttResult = null;
+										SpeechRecognize();
+										waitSomeTime(5000);
+										if (null != SttResult) {
+											break;
+										}
+									}
+									Message message = new Message();
+									message.what = 4;
+									mHandler.sendMessage(message);
+									
+									waitSomeTime(temp.length() * 300);
+									
 								} else {
 									messageText = "晓燕：主人，对不起，我回答不了您的问题，请重新提问。";
 									sendUpdateMessage();
@@ -431,9 +411,7 @@ public class MainActivity extends Activity implements OnClickListener {
 			
 			break;
 		case R.id.start_dial:
-			webView.loadUrl("http://baike.baidu.com/");
-
-			// startDial();
+			startDial();
 			break;
 		default:
 			break;
@@ -507,6 +485,16 @@ public class MainActivity extends Activity implements OnClickListener {
 		if ((question.contains("中国") && question.contains("大学"))
 				|| (question.contains("著名") && question.contains("大学"))
 				|| (question.contains("中国") && question.contains("著名"))) {
+			return true;
+		}
+		return false;
+	}
+	
+	// 是否问中国著名大学
+	private boolean isBaikeQuestion(String question) {
+		// TODO Auto-generated method stub
+		if (question.contains("百科") 
+				|| question.contains("百度") ||(question.contains("百") && question.contains("科"))) {
 			return true;
 		}
 		return false;
@@ -621,7 +609,8 @@ public class MainActivity extends Activity implements OnClickListener {
 
 		@Override
 		public void onVolumeChanged(int v) throws RemoteException {
-			showTip("onVolumeChanged：" + v);
+//			showTip("请开始说话。onVolumeChanged：" + v);
+			showTip("请开始说话……");
 		}
 
 		@Override
@@ -720,6 +709,39 @@ public class MainActivity extends Activity implements OnClickListener {
 			}
 		}
 		return false;
+	}
+	 /* 退出软件 */  
+    private void cofirmExit(){  
+        AlertDialog.Builder builder = new AlertDialog.Builder(MainActivity.this);  
+        builder.setTitle("退出软件")  
+            .setMessage("是否退出软件?")  
+            .setPositiveButton("是", new DialogInterface.OnClickListener() {  
+                public void onClick(DialogInterface dialog, int which) {    
+                    /* 调用finish()方法,退出程序 */  
+                    MainActivity.this.finish();    
+                }  
+            })  
+            .setNegativeButton("否", new DialogInterface.OnClickListener() {  
+                public void onClick(DialogInterface dialog, int which) {  
+                    /* 若选择否则不需要填写代码 */  
+                }  
+            }).show(); /* 记得调用show()方法,否则显示不出来Dialog */  
+    }  
+	@Override
+	public boolean onKeyDown(int keyCode, KeyEvent event) {
+		// TODO Auto-generated method stub
+		if ((keyCode == KeyEvent.KEYCODE_BACK) && webView.canGoBack()) {  
+            /* 用户按返回键,如果可返回则回退 */  
+            System.out.println("test onKeyDown-->1");  
+            webView.goBack();  
+            return true;  
+        } else if (keyCode == KeyEvent.KEYCODE_BACK){  
+            /* 用户按返回键,若不可返回时则退出程序 */  
+            System.out.println("test onKeyDown-->2");  
+            cofirmExit();  
+            return true;  
+        }  
+		return super.onKeyDown(keyCode, event);
 	}
 
 }
