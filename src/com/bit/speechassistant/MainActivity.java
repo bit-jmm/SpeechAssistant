@@ -78,10 +78,15 @@ public class MainActivity extends Activity implements OnClickListener {
 	private Handler dialHandler;
 
 	private boolean mRunning = false;
-	
+
 	private int x = 0;
 	private int y = 0;
 
+	private boolean available = true;
+
+	private Object lock = new Object();
+
+	private boolean isFirstTime = true;
 	/**
 	 * 发音人选择。
 	 */
@@ -97,7 +102,7 @@ public class MainActivity extends Activity implements OnClickListener {
 		setContentView(R.layout.main);
 		init();
 	}
-	
+
 	private void init() {
 		dialogue = (EditText) findViewById(R.id.dialogue);
 		dialogue.setMovementMethod(ScrollingMovementMethod.getInstance());
@@ -118,30 +123,28 @@ public class MainActivity extends Activity implements OnClickListener {
 				view.loadUrl(url);
 				return super.shouldOverrideUrlLoading(view, url);
 			}
-			
+
 			public void onPageFinished(WebView view, String url) {
 				// TODO Auto-generated method stub
-				Log.d("WebView","onPageFinished ");
-//				view.loadUrl("javascript:window.local_obj.showSource('<head>'+" +
-//		                "document.getElementsByTagName('html')[0].innerHTML+'</head>');");		
-//				webView.loadUrl("javascript:document.getElementsByName('word')[0].value='北京理工大学'");
-				
+				Log.d(TAG, "onPageFinished" + " : " + url);
+				// synchronized (lock) {
 				if (url.equals("http://wapbaike.baidu.com/?adapt=1&")) {
-					if (null == SttResult ) {
-						view.loadUrl("javascript:document.getElementsByName('word')[0].value='北京理工大学'");
-					} else {
-						view.loadUrl("javascript:document.getElementsByName('word')[0].value='"+SttResult+"'");
-					}
-				
-					Message message = new Message();
-					message.what = 3;
-					mHandler.sendMessage(message);
+					view.loadUrl("javascript:document.getElementsByName('word')[0].value='北京理工大学'");
+					view.loadUrl("javascript:document.getElementsByName('submit')[0].click()");
+					// lock.notifyAll();
+					// available = true;
+					mHandler.sendEmptyMessage(3);
 				}
+				view.loadUrl("javascript:window.local_obj.showSource('<head>'+"
+						+ "document.getElementsByTagName('html')[0].innerHTML+'</head>');");
+
+				// }
+
 				super.onPageFinished(view, url);
 			}
 
 		});
-		
+
 		webView.setOnTouchListener(new OnTouchListener() {
 			@Override
 			public boolean onTouch(View v, MotionEvent event) {
@@ -149,9 +152,9 @@ public class MainActivity extends Activity implements OnClickListener {
 				float x = event.getX();
 				float y = event.getY();
 				event.getMetaState();
-				Log.v("ON_TOUCH",
+				Log.d("ON_TOUCH",
 						"Action = " + action + " View:" + v.toString());
-				Log.v("ON_TOUCH", "X = " + x + "Y = " + y);
+				Log.d("ON_TOUCH", "X = " + x + "Y = " + y);
 				return false;
 			}
 		});
@@ -185,14 +188,76 @@ public class MainActivity extends Activity implements OnClickListener {
 
 		mHandler = new Myhandler(Looper.getMainLooper());
 	}
-	final class InJavaScriptLocalObj {
-	    public void showSource(String html) {
-	        Log.d("HTML", html);
-	    }
+
+	class WebTouchThread extends Thread {
+		@Override
+		public void run() {
+			// synchronized (lock) {
+			// while (available == false) {
+			// try {
+			// lock.wait();
+			// } catch (InterruptedException e) {
+			// // TODO Auto-generated catch block
+			// e.printStackTrace();
+			// }
+			// }
+			// available = false;
+
+			try {
+				sleep(1000);
+			} catch (InterruptedException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+			touchScreen(webView, 447.35028f, 192.3757f);
+			if (isFirstTime) {
+				touchScreen(webView, 447.35028f, 192.3757f);
+				isFirstTime = false;
+			}
+			Log.d(TAG, String.valueOf(this.getId()));
+			// }
+		}
 	}
-	
-	private void simulateDoubleTapEvent(View view, float x, float y,
-			int action) {
+
+	class WebLoadThread extends Thread {
+		private String url;
+
+		public WebLoadThread(String url) {
+			super();
+			this.url = url;
+		}
+
+		@Override
+		public void run() {
+			// TODO Auto-generated method stub
+			// synchronized (lock) {
+			// while (available == false) {
+			// try {
+			// lock.wait();
+			// } catch (InterruptedException e) {
+			// // TODO Auto-generated catch block
+			// e.printStackTrace();
+			// }
+			// }
+			// available = false;
+
+			webView.loadUrl(url);
+			Log.d(TAG, String.valueOf(this.getId()));
+			Log.d(TAG, url);
+			// }
+			super.run();
+		}
+
+	}
+
+	final class InJavaScriptLocalObj {
+		public void showSource(String html) {
+			Log.d(TAG, html);
+			System.out.println("====>html=" + html);
+		}
+	}
+
+	private void simulateDoubleTapEvent(View view, float x, float y, int action) {
 		long downTime = SystemClock.uptimeMillis();
 		long eventTime = SystemClock.uptimeMillis() + 100;
 		// List of meta states found here:
@@ -202,8 +267,8 @@ public class MainActivity extends Activity implements OnClickListener {
 				metaState);
 		view.dispatchTouchEvent(me);
 	}
-	
-	public void touchScreen(View view,float x,float y) {
+
+	public void touchScreen(View view, float x, float y) {
 		simulateDoubleTapEvent(view, x, y, 0);
 		simulateDoubleTapEvent(view, x, y, 2);
 		simulateDoubleTapEvent(view, x, y, 2);
@@ -237,13 +302,14 @@ public class MainActivity extends Activity implements OnClickListener {
 						.getText().length());
 				break;
 			case 3:
+				WebTouchThread webTouchThread = new WebTouchThread();
+				webTouchThread.start();
 				try {
-					Thread.currentThread().sleep(1000);
+					webTouchThread.join();
 				} catch (InterruptedException e) {
 					// TODO Auto-generated catch block
 					e.printStackTrace();
 				}
-				touchScreen(webView,447.35028f, 192.3757f);
 				break;
 			case 4:
 				webView.loadUrl("http://baike.baidu.com/");
@@ -332,13 +398,13 @@ public class MainActivity extends Activity implements OnClickListener {
 									sendUpdateMessage();
 									speak(temp);
 									waitSomeTime(temp.length() * 300);
-								} else if(isBaikeQuestion(question)) {
+								} else if (isBaikeQuestion(question)) {
 									temp = "请问您要问什么百科知识？";
 									messageText = "晓燕：" + temp;
 									sendUpdateMessage();
 									speak(temp);
 									waitSomeTime(temp.length() * 300);
-									
+
 									while (true) {
 										SttResult = null;
 										SpeechRecognize();
@@ -350,9 +416,9 @@ public class MainActivity extends Activity implements OnClickListener {
 									Message message = new Message();
 									message.what = 4;
 									mHandler.sendMessage(message);
-									
+
 									waitSomeTime(temp.length() * 300);
-									
+
 								} else {
 									messageText = "晓燕：主人，对不起，我回答不了您的问题，请重新提问。";
 									sendUpdateMessage();
@@ -405,10 +471,26 @@ public class MainActivity extends Activity implements OnClickListener {
 
 			break;
 		case R.id.stt:
-//			mStt.startListening(mRecognizerListener);
-			webView.loadUrl("http://baike.baidu.com/");
-			
-			
+			// mStt.startListening(mRecognizerListener);
+			WebLoadThread webLoadThread = new WebLoadThread(
+					"http://baike.baidu.com/");
+			webLoadThread.start();
+			try {
+				webLoadThread.join();
+			} catch (InterruptedException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+			// WebTouchThread webTouchThread = new WebTouchThread();
+			// webTouchThread.start();
+			// try {
+			// webLoadThread.join();
+			// } catch (InterruptedException e) {
+			// // TODO Auto-generated catch block
+			// e.printStackTrace();
+			// }
+			// webLoadThread.setPriority(Thread.MAX_PRIORITY);
+
 			break;
 		case R.id.start_dial:
 			startDial();
@@ -489,12 +571,12 @@ public class MainActivity extends Activity implements OnClickListener {
 		}
 		return false;
 	}
-	
+
 	// 是否问中国著名大学
 	private boolean isBaikeQuestion(String question) {
 		// TODO Auto-generated method stub
-		if (question.contains("百科") 
-				|| question.contains("百度") ||(question.contains("百") && question.contains("科"))) {
+		if (question.contains("百科") || question.contains("百度")
+				|| (question.contains("百") && question.contains("科"))) {
 			return true;
 		}
 		return false;
@@ -609,7 +691,7 @@ public class MainActivity extends Activity implements OnClickListener {
 
 		@Override
 		public void onVolumeChanged(int v) throws RemoteException {
-//			showTip("请开始说话。onVolumeChanged：" + v);
+			// showTip("请开始说话。onVolumeChanged：" + v);
 			showTip("请开始说话……");
 		}
 
@@ -710,37 +792,38 @@ public class MainActivity extends Activity implements OnClickListener {
 		}
 		return false;
 	}
-	 /* 退出软件 */  
-    private void cofirmExit(){  
-        AlertDialog.Builder builder = new AlertDialog.Builder(MainActivity.this);  
-        builder.setTitle("退出软件")  
-            .setMessage("是否退出软件?")  
-            .setPositiveButton("是", new DialogInterface.OnClickListener() {  
-                public void onClick(DialogInterface dialog, int which) {    
-                    /* 调用finish()方法,退出程序 */  
-                    MainActivity.this.finish();    
-                }  
-            })  
-            .setNegativeButton("否", new DialogInterface.OnClickListener() {  
-                public void onClick(DialogInterface dialog, int which) {  
-                    /* 若选择否则不需要填写代码 */  
-                }  
-            }).show(); /* 记得调用show()方法,否则显示不出来Dialog */  
-    }  
+
+	/* 退出软件 */
+	private void cofirmExit() {
+		AlertDialog.Builder builder = new AlertDialog.Builder(MainActivity.this);
+		builder.setTitle("退出软件").setMessage("是否退出软件?")
+				.setPositiveButton("是", new DialogInterface.OnClickListener() {
+					public void onClick(DialogInterface dialog, int which) {
+						/* 调用finish()方法,退出程序 */
+						MainActivity.this.finish();
+					}
+				})
+				.setNegativeButton("否", new DialogInterface.OnClickListener() {
+					public void onClick(DialogInterface dialog, int which) {
+						/* 若选择否则不需要填写代码 */
+					}
+				}).show(); /* 记得调用show()方法,否则显示不出来Dialog */
+	}
+
 	@Override
 	public boolean onKeyDown(int keyCode, KeyEvent event) {
 		// TODO Auto-generated method stub
-		if ((keyCode == KeyEvent.KEYCODE_BACK) && webView.canGoBack()) {  
-            /* 用户按返回键,如果可返回则回退 */  
-            System.out.println("test onKeyDown-->1");  
-            webView.goBack();  
-            return true;  
-        } else if (keyCode == KeyEvent.KEYCODE_BACK){  
-            /* 用户按返回键,若不可返回时则退出程序 */  
-            System.out.println("test onKeyDown-->2");  
-            cofirmExit();  
-            return true;  
-        }  
+		if ((keyCode == KeyEvent.KEYCODE_BACK) && webView.canGoBack()) {
+			/* 用户按返回键,如果可返回则回退 */
+			System.out.println("test onKeyDown-->1");
+			webView.goBack();
+			return true;
+		} else if (keyCode == KeyEvent.KEYCODE_BACK) {
+			/* 用户按返回键,若不可返回时则退出程序 */
+			System.out.println("test onKeyDown-->2");
+			cofirmExit();
+			return true;
+		}
 		return super.onKeyDown(keyCode, event);
 	}
 
