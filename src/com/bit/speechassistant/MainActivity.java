@@ -102,10 +102,50 @@ public class MainActivity extends Activity implements OnClickListener {
 		setContentView(R.layout.main);
 		init();
 	}
+	class MyWebViewClient extends WebViewClient {
+		
+		public MyWebViewClient() {
+			super();
+			// TODO Auto-generated constructor stub
+		}
 
+		@Override
+		public boolean shouldOverrideUrlLoading(WebView view, String url) {
+			// TODO Auto-generated method stub
+			view.loadUrl(url);
+			return super.shouldOverrideUrlLoading(view, url);
+		}
+
+		public void onPageFinished(WebView view, String url) {
+			// TODO Auto-generated method stub
+			Log.d(TAG, "onPageFinished" + " : " + url);
+			// synchronized (lock) {
+			if (url.equals("http://wapbaike.baidu.com/?adapt=1&")) {
+				if (SttResult == null) {
+					view.loadUrl("javascript:document.getElementsByName('word')[0].value='北京理工大学'");
+				} else {
+					view.loadUrl("javascript:document.getElementsByName('word')[0].value='"+SttResult+"'");
+				}
+				
+				// view.loadUrl("javascript:document.getElementsByName('submit')[0].click()");
+				// lock.notifyAll();
+				// available = true;
+				mHandler.sendEmptyMessage(3);
+			}
+			view.loadUrl("javascript:window.local_obj.showSource('<head>'+"
+					+ "document.getElementsByTagName('html')[0].innerHTML+'</head>');");
+
+			// }
+
+			super.onPageFinished(view, url);
+		}
+
+	}
+	
 	private void init() {
 		dialogue = (EditText) findViewById(R.id.dialogue);
 		dialogue.setMovementMethod(ScrollingMovementMethod.getInstance());
+		dialogue.setSelection(dialogue.getText().length(), dialogue.getText().length());
 		Button mBtnSpeechAssistant = (Button) findViewById(R.id.speech_assistant);
 		mBtnSpeechAssistant.setOnClickListener(this);
 
@@ -115,35 +155,7 @@ public class MainActivity extends Activity implements OnClickListener {
 		webView = (WebView) findViewById(R.id.web);
 		webView.getSettings().setJavaScriptEnabled(true);
 		webView.addJavascriptInterface(new InJavaScriptLocalObj(), "local_obj");
-		webView.setWebViewClient(new WebViewClient() {
-
-			@Override
-			public boolean shouldOverrideUrlLoading(WebView view, String url) {
-				// TODO Auto-generated method stub
-				view.loadUrl(url);
-				return super.shouldOverrideUrlLoading(view, url);
-			}
-
-			public void onPageFinished(WebView view, String url) {
-				// TODO Auto-generated method stub
-				Log.d(TAG, "onPageFinished" + " : " + url);
-				// synchronized (lock) {
-				if (url.equals("http://wapbaike.baidu.com/?adapt=1&")) {
-					view.loadUrl("javascript:document.getElementsByName('word')[0].value='北京理工大学'");
-					view.loadUrl("javascript:document.getElementsByName('submit')[0].click()");
-					// lock.notifyAll();
-					// available = true;
-					mHandler.sendEmptyMessage(3);
-				}
-				view.loadUrl("javascript:window.local_obj.showSource('<head>'+"
-						+ "document.getElementsByTagName('html')[0].innerHTML+'</head>');");
-
-				// }
-
-				super.onPageFinished(view, url);
-			}
-
-		});
+		webView.setWebViewClient(new MyWebViewClient());
 
 		webView.setOnTouchListener(new OnTouchListener() {
 			@Override
@@ -210,9 +222,9 @@ public class MainActivity extends Activity implements OnClickListener {
 				e.printStackTrace();
 			}
 			touchScreen(webView, 447.35028f, 192.3757f);
-			if (isFirstTime) {
+			
+			if(!webView.canGoBack()) {
 				touchScreen(webView, 447.35028f, 192.3757f);
-				isFirstTime = false;
 			}
 			Log.d(TAG, String.valueOf(this.getId()));
 			// }
@@ -249,6 +261,7 @@ public class MainActivity extends Activity implements OnClickListener {
 		}
 
 	}
+
 
 	final class InJavaScriptLocalObj {
 		public void showSource(String html) {
@@ -312,7 +325,15 @@ public class MainActivity extends Activity implements OnClickListener {
 				}
 				break;
 			case 4:
-				webView.loadUrl("http://baike.baidu.com/");
+				WebLoadThread webLoadThread = new WebLoadThread(
+						"http://baike.baidu.com/");
+				webLoadThread.start();
+				try {
+					webLoadThread.join();
+				} catch (InterruptedException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
 				break;
 			default:
 				break;
@@ -342,8 +363,7 @@ public class MainActivity extends Activity implements OnClickListener {
 				mRunning = false;
 
 				// 对话开始时晓燕首先报时
-				String string = "主人，您好！我是晓燕，现在是 " + getNowDate()
-						+ "请问有什么可以帮助您的吗？";
+				String string = "您好！现在是 " + getNowDate() + "请问有什么可以帮助您的吗？";
 
 				messageText = "晓燕：" + string;
 				sendUpdateMessage();
@@ -385,7 +405,7 @@ public class MainActivity extends Activity implements OnClickListener {
 						} else {
 							if (isPositive(SttResult)) {
 								if (isQNowTime(question)) {
-									temp = "主人，您好！现在是 " + getNowDate()
+									temp = "您好！现在是 " + getNowDate()
 											+ "回答完毕，请您再次提问。";
 									messageText = "晓燕：" + temp;
 									sendUpdateMessage();
@@ -413,10 +433,12 @@ public class MainActivity extends Activity implements OnClickListener {
 											break;
 										}
 									}
-									Message message = new Message();
-									message.what = 4;
-									mHandler.sendMessage(message);
-
+									if (webView.canGoBack()) {
+										webView.goBack();
+									} else {
+										mHandler.sendEmptyMessage(4);
+									}
+									
 									waitSomeTime(temp.length() * 300);
 
 								} else {
@@ -493,6 +515,7 @@ public class MainActivity extends Activity implements OnClickListener {
 
 			break;
 		case R.id.start_dial:
+			sttBtn.performClick();
 			startDial();
 			break;
 		default:
