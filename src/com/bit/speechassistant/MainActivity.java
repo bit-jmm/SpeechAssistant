@@ -17,6 +17,7 @@ import android.content.Intent;
 import android.content.pm.PackageInfo;
 import android.graphics.Bitmap;
 import android.opengl.ETC1;
+import android.opengl.Visibility;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.HandlerThread;
@@ -148,10 +149,22 @@ public class MainActivity extends Activity implements OnClickListener {
 		dialogue.setSelection(dialogue.getText().length(), dialogue.getText().length());
 		Button mBtnSpeechAssistant = (Button) findViewById(R.id.speech_assistant);
 		mBtnSpeechAssistant.setOnClickListener(this);
-
+		mBtnSpeechAssistant.setEnabled(false);
+		mBtnSpeechAssistant.setVisibility(View.INVISIBLE);
+		
 		Button mBtnStartDial = (Button) findViewById(R.id.start_dial);
 		mBtnStartDial.setOnClickListener(this);
 
+		ttsBtn = (Button) findViewById(R.id.tts);
+		ttsBtn.setOnClickListener(this);
+		ttsBtn.setEnabled(false);
+		ttsBtn.setVisibility(View.INVISIBLE);
+		
+		sttBtn = (Button) findViewById(R.id.stt);
+		sttBtn.setOnClickListener(this);
+		sttBtn.setEnabled(false);
+		sttBtn.setVisibility(View.INVISIBLE);
+		
 		webView = (WebView) findViewById(R.id.web);
 		webView.getSettings().setJavaScriptEnabled(true);
 		webView.addJavascriptInterface(new InJavaScriptLocalObj(), "local_obj");
@@ -170,11 +183,7 @@ public class MainActivity extends Activity implements OnClickListener {
 				return false;
 			}
 		});
-		ttsBtn = (Button) findViewById(R.id.tts);
-		ttsBtn.setOnClickListener(this);
-
-		sttBtn = (Button) findViewById(R.id.stt);
-		sttBtn.setOnClickListener(this);
+		
 
 		mToast = Toast.makeText(this, "", Toast.LENGTH_LONG);
 
@@ -678,32 +687,32 @@ public class MainActivity extends Activity implements OnClickListener {
 				// startActivity(intent);
 				showTip("无本地发音人资源，请到语音+中下载发音人！");
 			} else {
-				showTip("onCompleted code =" + code);
+				showTip("机器人说话完毕。 code =" + code);
 			}
 		}
 
 		@Override
 		public void onSpeakBegin() throws RemoteException {
 			Log.d(TAG, "onSpeakBegin");
-			showTip("onSpeakBegin");
+			showTip("机器人开始说话。请保持安静！");
 		}
 
 		@Override
 		public void onSpeakPaused() throws RemoteException {
 			Log.d(TAG, "onSpeakPaused.");
-			showTip("onSpeakPaused.");
+			showTip("机器人说话中断！");
 		}
 
 		@Override
 		public void onSpeakProgress(int progress) throws RemoteException {
 			Log.d(TAG, "onSpeakProgress :" + progress);
-			showTip("onSpeakProgress :" + progress);
+			showTip("机器人正在说话。请保持安静！ " + progress);
 		}
 
 		@Override
 		public void onSpeakResumed() throws RemoteException {
 			Log.d(TAG, "onSpeakResumed.");
-			showTip("onSpeakResumed");
+			showTip("机器人重新开始说话。");
 		}
 	};
 
@@ -715,7 +724,7 @@ public class MainActivity extends Activity implements OnClickListener {
 		@Override
 		public void onVolumeChanged(int v) throws RemoteException {
 			// showTip("请开始说话。onVolumeChanged：" + v);
-			showTip("请开始说话……");
+//			showTip("");
 		}
 
 		@Override
@@ -749,17 +758,17 @@ public class MainActivity extends Activity implements OnClickListener {
 
 		@Override
 		public void onError(int errorCode) throws RemoteException {
-			showTip("onError Code：" + errorCode);
+			showTip("识别错误 Code：" + errorCode);
 		}
 
 		@Override
 		public void onEndOfSpeech() throws RemoteException {
-			showTip("onEndOfSpeech");
+			showTip("语音识别完毕。");
 		}
 
 		@Override
 		public void onBeginOfSpeech() throws RemoteException {
-			showTip("onBeginOfSpeech");
+			showTip("请您开始说话……");
 		}
 	};
 
