@@ -73,6 +73,8 @@ public class MainActivity extends Activity implements OnClickListener {
 	private String temp = null;
 
 	private String messageText = null;
+	
+	private String baikeAnswer = null;
 
 	private WebView webView = null;
 
@@ -133,11 +135,12 @@ public class MainActivity extends Activity implements OnClickListener {
 				// available = true;
 				mHandler.sendEmptyMessage(3);
 			}
-			view.loadUrl("javascript:window.local_obj.showSource('<head>'+"
-					+ "document.getElementsByTagName('html')[0].innerHTML+'</head>');");
-
+//			view.loadUrl("javascript:window.local_obj.showSource('<head>'+"
+//					+ "document.getElementsByTagName('html')[0].innerHTML+'</head>');");
+			if (!url.equals("http://wapbaike.baidu.com/?adapt=1&")) {
+				view.loadUrl("javascript:window.local_obj.showSource(document.getElementsByTagName('p')[1].innerText);");
+			}
 			// }
-
 			super.onPageFinished(view, url);
 		}
 
@@ -162,8 +165,8 @@ public class MainActivity extends Activity implements OnClickListener {
 		
 		sttBtn = (Button) findViewById(R.id.stt);
 		sttBtn.setOnClickListener(this);
-		sttBtn.setEnabled(false);
-		sttBtn.setVisibility(View.INVISIBLE);
+//		sttBtn.setEnabled(false);
+//		sttBtn.setVisibility(View.INVISIBLE);
 		
 		webView = (WebView) findViewById(R.id.web);
 		webView.getSettings().setJavaScriptEnabled(true);
@@ -274,7 +277,10 @@ public class MainActivity extends Activity implements OnClickListener {
 
 	final class InJavaScriptLocalObj {
 		public void showSource(String html) {
-			Log.d(TAG, html);
+			Log.d(TAG, "网页文本：  "+html);
+			if (SttResult != null && html.contains(SttResult)) {
+				baikeAnswer = html;
+			}
 			System.out.println("====>html=" + html);
 		}
 	}
@@ -448,18 +454,31 @@ public class MainActivity extends Activity implements OnClickListener {
 										mHandler.sendEmptyMessage(4);
 									}
 									
-									waitSomeTime(temp.length() * 300);
+									while (true) {
+										waitSomeTime(2000);
+										if (null != baikeAnswer) {
+											break;
+										}
+									}
+									
+									messageText = "晓燕：" + baikeAnswer;
+									sendUpdateMessage();
+									speak(baikeAnswer + "回答完毕！请您重新提问！");
+									waitSomeTime(baikeAnswer.length()*125);
 
+									waitSomeTime(5000);
+									baikeAnswer = null;
+									
 								} else {
-									messageText = "晓燕：主人，对不起，我回答不了您的问题，请重新提问。";
+									messageText = "晓燕：对不起，我回答不了您的问题，请重新提问。";
 									sendUpdateMessage();
 									speak("主人，对不起，我回答不了您的问题，请重新提问。");
 									waitSomeTime(5000);
 								}
 							} else {
-								messageText = "晓燕：对不起，我没有听清楚您的问题，请主人重新提问。";
+								messageText = "晓燕：对不起，我没有听清楚您的问题，请重新提问。";
 								sendUpdateMessage();
-								speak("对不起，我没有听清楚您的问题，请主人重新提问。");
+								speak("对不起，我没有听清楚您的问题，请重新提问。");
 								waitSomeTime(5000);
 							}
 							isQuestion = 0;
@@ -560,9 +579,9 @@ public class MainActivity extends Activity implements OnClickListener {
 	private void speak(String text) {
 		int code = mTts.startSpeaking(text, mTtsListener);
 		if (code != 0) {
-			showTip("start speak error : " + code);
+			showTip("语音合成错误!!!" + code);
 		} else
-			showTip("start speak success.");
+			showTip("开始合成语音……");
 		while (mTts.isSpeaking()) {
 
 		}
